@@ -3,6 +3,8 @@ Consisteix en implementar el joc del Mastermind, on s’ha d’introduir una com
 
 Per executar el programa cal fer:
 
-yasm -f elf64 -g dwarf2 MMp1.asm
-gcc -no-pie -o MMp1 -g MMp1.o MMp1c.c
-kdbg MMp1
+**yasm -f elf64 -g dwarf2 MMp1.asm**
+
+**gcc -no-pie -o MMp1 -g MMp1.o MMp1c.c**
+
+**kdbg MMp1**
