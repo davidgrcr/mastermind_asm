@@ -213,6 +213,30 @@ posCurBoardP1:
    push rbp
    mov  rbp, rsp
    
+   push rax
+   push rsi
+   
+   pcb_if:						;if (status == 0) {
+   cmp DWORD[state], 0
+   jne pcb_if_else				;salta a l'etiqueta si diferent
+	 mov DWORD[row], 3     		;row = 3
+	 jmp pcb_if_end
+   pcb_if_else:
+     mov eax, ARRAYDIM         	;row = 9+(DimVector-tries)*2;
+     sub eax, DWORD[tries]
+     shl eax, 1
+     add eax, 9
+     mov DWORD[row], eax
+   pcb_if_end:  
+   mov esi,DWORD[pos]			;col = 8+(pos*2);
+   shl esi, 1					;pos*2
+   add esi, 8					;8+(pos*2)
+   mov DWORD[col],esi     
+   call gotoxyP1				;gotoxyP1_C();
+   
+   pcb_end:
+   pop rsi
+   pop rax
    
 
    mov rsp, rbp
@@ -236,8 +260,32 @@ updatePosP1:
    push rbp
    mov  rbp, rsp
    
+   push rax
+   push rsi
    
    
+   udp_if2:								;if (charac=='j')
+   cmp BYTE[charac], 'j'
+   jne udp_if2_end						;salta a l'etiqueta si diferent,
+      udp_if21:							;if (i>0)
+      cmp DWORD[pos],0
+      jle udp_if21_end					;salta si és més petit o igual.
+        dec DWORD[pos]					;pos--
+      udp_if21_end:
+    udp_if2_end:
+    
+   udp_if3:								;if (charac=='k')
+   cmp BYTE[charac], 'k'
+   jne udp_if3_end						;salta a l'etiqueta si diferent,
+	  udp_if31:							;if (i<ARRAYDIM-1)
+	  cmp DWORD[pos], (ARRAYDIM-1)
+	  jge udp_if31_end					;salta si és més petit o igual.
+		inc DWORD[pos]					;pos++
+      udp_if31_end:
+    udp_if3_end:
+         
+   udp_end:
+    
    mov rsp, rbp
    pop rbp
    ret
@@ -266,7 +314,33 @@ updateArrayP1:
    push rbp
    mov  rbp, rsp
    
+   push rax
+   push rsi
+   push rdi
    
+   
+    mov esi,DWORD[pos]	    			;pos = pos*4;
+    mov edi, esi
+	shl edi, 2
+
+	 mov al, BYTE[charac]				
+	 sub al, '0'						;(int)(charac-'0');
+	  ua_if:	
+	  cmp DWORD[state], 0             	;if (state==0) {
+	  jne ua_if_else					;salta a l'etiqueta si diferent,
+		mov DWORD[aSecret+edi],eax 		;aSecret[pos]=charac;
+		mov BYTE[charac],'*'			;charac='*';
+		jmp ua_if_end
+	  ua_if_else:
+		mov DWORD[aPlay+edi],eax		;aPlay[pos]=val;
+	  ua_if_end:
+	  
+	  call printchP1					;printchP1_C();
+   
+   ua_end:
+   pop rdi
+   pop rsi
+   pop rax
 
    mov rsp, rbp
    pop rbp
@@ -292,7 +366,67 @@ updateArrayP1:
 checkSecretP1:
    push rbp
    mov  rbp, rsp
+   
+   push rax
+   push rbx
+   push rcx
+   push rsi
+   push rdi
+   push rbp
+   
+   mov eax,0   					   		;int secretError = 0;
+   mov esi,0							;int i=0;
+   mov edi,0							;int j=0
+   
+   cs_fori:
+    cmp esi, ARRAYDIM  					;for (i=0;i<ARRAYDIM;i++) {
+    jge cs_fori_end						;salta si és més gran o igual.
+	 cs_if1:							;if (aSecret[i]==-3) {
+	 mov ebx, esi
+	 shl ebx, 2
+	 cmp DWORD[aSecret+ebx], -3
+	 jne cs_if1_end						;salta a l'etiqueta si diferent,
+      mov eax,1							;secretError=1;
+	 cs_if1_end:
 	
+	 mov edi,esi
+	 add edi,1 							;j=i+1
+	 cs_forj:	
+     cmp edi, ARRAYDIM  				;for (j=i+1;j<ARRAYDIM;j++) {
+     jge cs_forj_end
+     cs_if2:					 		;if (aSecret[i]==aSecret[j]){
+     mov ecx, DWORD[aSecret+ebx]
+     mov ebp, edi
+	 shl ebp, 2
+     cmp ecx, DWORD[aSecret+ebp]
+     jne cs_if2_end						;salta a l'etiqueta si diferent,
+     mov eax,1							;secretError=1;
+    
+     cs_if2_end: 
+     inc edi    						;j++
+     jmp cs_forj     
+	 cs_forj_end:
+	 
+	 inc esi							;i++
+   	 jmp cs_fori
+   cs_fori_end:
+     
+   cs_if3: 								;if (secretError==1) 
+	cmp eax, 1
+    jne cs_if3_else						;salta a l'etiqueta si diferent,
+	 mov DWORD[state], 2				;state = 2
+	 jmp cs_if3_end
+	cs_if3_else:
+	 mov DWORD[state], 1  				;else state = 1; 
+    cs_if3_end:
+	    
+   cs_end:
+   pop rbp
+   pop rdi
+   pop rsi
+   pop rcx
+   pop rbx
+   pop rax
    
 
    mov rsp, rbp
@@ -326,8 +460,58 @@ printSecretPlayP1:
    push rbp
    mov  rbp, rsp
 	
+   push rax
+   push rsi
+   push rdi
    
-
+   gsp_if:							;if (status == 1) {
+   cmp DWORD[state], 1
+   jne gsp_if_else					;salta a l'etiqueta si diferent,
+     mov eax, ARRAYDIM         		;row = 9+(DimVector-tries)*2;
+     sub eax, DWORD[tries]
+     shl eax, 1
+     add eax, 9
+     mov DWORD[row], eax	 
+	 jmp gsp_if_end
+   gsp_if_else:
+	 mov DWORD[row], 3     			;row = 3
+   gsp_if_end:  
+   
+   mov DWORD[col],8
+   
+   mov esi, 0						;int i=0
+   ps_fori:							;for (i=0; i<ARRAYDIM; i++){
+   cmp esi, ARRAYDIM
+   jge ps_fori_end					;salta si és més gran o igual.
+     call gotoxyP1					;gotoxyP1_C();
+     mov edi, esi
+	 shl edi, 2
+	gsp_if2:						;if (state == 1) {
+	cmp DWORD[state], 1
+	jne gsp_if2_else				;salta a l'etiqueta si diferent,	
+     mov al, BYTE[aPlay+edi] 	 	;charac = aPlay[i]+'0';
+     add al, '0'
+   	 mov BYTE[charac], al
+	 jmp gsp_if2_end
+	 
+	 gsp_if2_else:
+	 mov ah, BYTE[aSecret+edi] 		;charac = aSecret[i]+'0';
+	 add ah, '0'
+   	 mov BYTE[charac], ah     		
+   
+	 gsp_if2_end:
+   
+   	 call printchP1 			;printchP1_C();
+	 add DWORD[col], 2  		;col = col + 2;
+     inc esi
+     jmp ps_fori
+   ps_fori_end:
+   
+   ps_end:   
+   pop rdi
+   pop rsi
+   pop rax
+   	
    mov rsp, rbp
    pop rbp
    ret
@@ -355,7 +539,47 @@ printSecretPlayP1:
 checkPlayP1:
    push rbp
    mov  rbp, rsp
-	
+   
+   push rax
+   push rbx
+   push rsi
+   push rdi
+    
+   mov DWORD[hX],0						;hX = 0; 
+   mov esi, 0							;i=0
+   
+   ch_fori:								;for (i=0;i<ARRAYDIM;i++) {
+   cmp esi, ARRAYDIM
+   jge ch_fori_end						;salta si és més gran o igual.
+	ch_if1:
+	mov edi, esi
+	shl edi, 2
+										
+	mov eax,DWORD[aPlay+edi]	
+	mov ebx,DWORD[aSecret+edi]	    
+    cmp eax, ebx						;if (aSecret[i]==aPlay[i]) {
+    jne ch_if1_end						;salta a l'etiqueta si diferent,
+      inc DWORD[hX]						;hX++;
+    ch_if1_end:
+    inc esi
+    jmp ch_fori   
+   ch_fori_end:
+   
+   ch_if2:					 			;if (hX == ARRAYDIM ) {
+   cmp DWORD[hX], ARRAYDIM
+   jne ch_if2_end						;salta a l'etiqueta si diferent,
+	mov DWORD[state], 3  				;state = 3;
+   ch_if2_end:
+   
+   call printHitsP1						;printchP1_C()
+   
+   ch_end:
+   pop rdi
+   pop rsi
+   pop rbx
+   pop rax
+   
+
    
 
    mov rsp, rbp
@@ -383,9 +607,35 @@ checkPlayP1:
 printHitsP1:
    push rbp
    mov  rbp, rsp
-	
+	  
+   push rax
+   push rsi
    
-
+   mov eax, ARRAYDIM         			;row = 9+(DimVector-tries)*2;
+   sub eax, DWORD[tries]
+   shl eax, 1
+   add eax, 9
+   mov DWORD[row], eax
+   
+   mov DWORD[col], 22
+   mov BYTE[charac], 'X'     	
+   
+   mov esi, DWORD[hX]					; i=hX
+   
+   ph_fori:								;for(i=hX;i>0;i--) {
+   cmp esi, 0
+   jle ph_fori_end						;salta si és més petit o igual.
+	call gotoxyP1
+	call printchP1
+	add DWORD[col], 2					;col = col + 2;
+    dec esi								;i--
+    jmp ph_fori   
+   ph_fori_end:
+   
+   
+   pop rsi
+   pop rax
+   	
    mov rsp, rbp
    pop rbp
    ret

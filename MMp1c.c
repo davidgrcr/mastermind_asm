@@ -277,15 +277,15 @@ void printBoardP1_C(){
  * Hi ha un subrutina en assemblador equivalent 'posCurBoardP1'.
  */
 void posCurBoardP1_C(){
-	
-   if (state==0) {
-      row = 3;
-   } else {
-      row = 9+(ARRAYDIM-tries)*2;
-   }
-   col = 8+(pos*2);
+	   if (state==0) {
+		  row = 3;
+	   } else {
+		  row = 9+(ARRAYDIM-tries)*2;
+	   }
+	   col = 8+(pos*2);
+	   
+	   gotoxyP1_C();
    
-   gotoxyP1_C();
    
 }
 
